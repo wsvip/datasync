@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+	<contextName>datasync</contextName>
+	<property name="LOG_PATH" value="/data/log4j" /> 
+	
+	<jmxConfigurator contextName="datasync" />
+
+	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">  
+        <layout class="ch.qos.logback.classic.PatternLayout">  
+            <pattern>%date [%thread] %-5level %logger{80} - %msg%n</pattern>  
+        </layout>
+    </appender>
+
+    <appender name="logfile"  class="ch.qos.logback.core.rolling.RollingFileAppender">
+    	<File>${LOG_PATH}/datasync.log</File> 
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>${LOG_PATH}/datasync.%d{yyyy-MM-dd}.log</FileNamePattern>   
+            <MaxHistory>15</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">  
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符--> 
+            <pattern>%date [%thread] %-5level %logger{20} - %msg%n</pattern>   
+       </layout>
+        <!--日志文件最大的大小-->
+       <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+         <MaxFileSize>50MB</MaxFileSize>
+       </triggeringPolicy>
+    </appender>
+    
+	<root>
+		<level value="INFO" />
+		<appender-ref ref="stdout" />
+	</root>
+	<logger name="com.zle.datasync">
+		<level value="DEBUG" />
+		<appender-ref ref="logfile" />
+	</logger>
+	<logger name="org.springframework">
+		<level value="INFO" />
+	</logger>
+	<logger name="org.springframework.jdbc.core.JdbcTemplate">
+		<level value="DEBUG" />
+		<appender-ref ref="logfile" />
+	</logger>
+</configuration>

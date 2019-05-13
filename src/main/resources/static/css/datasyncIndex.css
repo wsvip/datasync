@@ -1,0 +1,12 @@
+
+.table thead tr{
+    background: #4E5465;
+}
+.table thead tr th {
+    text-align: center;
+    font-size: 16px;
+    color: #ffffff;
+}
+.tbodyTd{
+    text-align: center;
+}

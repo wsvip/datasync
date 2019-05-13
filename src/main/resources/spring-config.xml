@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.0.xsd">
+	
+	<!-- 导入属性文件 -->
+	<context:property-placeholder location="classpath:config.properties"/>
+	<context:component-scan base-package="com.zsxx.datasync"/>
+	
+	<!-- druid数据源模板 -->
+	<bean id="datasource-parent" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close" abstract="true">
+		
+		<!-- 初始化连接大小 -->
+		<property name="initialSize" value="1" />
+		<!-- 连接池最小空闲 -->
+		<property name="minIdle" value="1" />
+		<!-- 连接池最大使用连接数量 -->
+		<property name="maxActive" value="5" />
+		<!-- 获取连接最大等待时间 -->
+		<property name="maxWait" value="10000" />
+
+		<property name="validationQuery" value="SELECT 1" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testOnReturn" value="false" />
+		<property name="testWhileIdle" value="true" />
+
+		<!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+		<property name="timeBetweenEvictionRunsMillis" value="60000" />
+		<!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+		<property name="minEvictableIdleTimeMillis" value="25200000" />
+
+		<!-- 打开removeAbandoned功能 -->
+		<property name="removeAbandoned" value="true" />
+		<!-- 1800秒，也就是30分钟 -->
+		<property name="removeAbandonedTimeout" value="1800" />
+		<!-- 关闭abanded连接时输出错误日志 -->
+		<property name="logAbandoned" value="true" />
+
+		<!-- 开启Druid的监控统计功能 -->
+		<property name="filters" value="stat,wall" />
+	</bean>
+	
+	<!-- 目标数据源配置 -->
+	<bean id="target-ds" parent="datasource-parent">
+		<property name="name" value="target-ds" />
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://127.0.0.1:3306/cc?useUnicode=true&amp;characterEncoding=utf8" />
+		<property name="username" value="root" />
+		<property name="password" value="password" />
+		<property name="dbType" value="mysql" />
+	</bean>
+	
+	<!-- 源数据库配置 -->
+ 	<bean id="origin-mysql" parent="datasource-parent">
+		<property name="name" value="origin-mysql" />
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&amp;characterEncoding=utf8" />
+		<property name="username" value="root" />
+		<property name="password" value="password" />
+		<property name="dbType" value="mysql" />
+	</bean>
+	
+<!--<bean id="origin-sqlserver" parent="datasource-parent">
+		<property name="name" value="origin-sqlserver" />
+		<property name="driverClassName" value="net.sourceforge.jtds.jdbc.Driver" />
+		<property name="url" value="jdbc:jtds:sqlserver://127.0.0.1:1433/dbname" />
+		<property name="username" value="sa" />
+		<property name="password" value="123456" />
+		<property name="dbType" value="sqlserver" />
+	</bean>
+	
+	<bean id="origin-oracle" parent="datasource-parent">
+		<property name="name" value="origin-oracle" />
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@127.0.0.1:1521:dbname" />
+		<property name="username" value="sccot" />
+		<property name="password" value="tiger" />
+		<property name="dbType" value="oracle" />
+		<property name="validationQuery" value="select 1 from dual" />
+		<property name="connectionProperties">
+			<value>clientEncoding=GBK;serverEncoding=ISO-8859-1;</value>
+		</property>
+	</bean> 
+	
+	<bean id="origin-oracle-encoding" parent="datasource-parent">
+		<property name="name" value="origin-oracle-encoding" />
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:wrap-jdbc:filters=encoding:jdbc:oracle:thin:@127.0.0.1:1521:dbname" />
+		<property name="username" value="sccot" />
+		<property name="password" value="tiger" />
+		<property name="dbType" value="oracle" />
+		<property name="validationQuery" value="select 1 from dual" />
+		<property name="connectionProperties">
+			<value>clientEncoding=GBK;serverEncoding=ISO-8859-1;</value>
+		</property>
+	</bean>
+	-->
+	
+	<!-- 全量同步配置 -->
+	<bean id="datasync1" class="com.ws.datasync.common.job.DataSyncJob"
+		p:originds-ref="origin-mysql" p:targetds-ref="target-ds" p:strategy="all"
+		p:selectSql="select id,name,`status`,remark from demo"
+		p:insertSql="insert into t_demo(id,name,`status`,remark) values(:id,:name,:status,:remark)"
+		p:deleteSql="delete from t_demo"/>
+	
+	<!-- 增量同步配置 -->
+	<bean id="datasync2" class="com.ws.datasync.common.job.DataSyncJob"
+		p:originds-ref="origin-mysql" p:targetds-ref="target-ds"
+		p:strategy="delta" p:pageSize="1" p:startTime="2014-01-01 00:00:00"
+		p:selectSql="select id,name,`status`,remark,birthday,height,create_time from demo where create_time>:startTime limit :startRow,:pageSize" 
+		p:insertSql="insert into t_demo(id,name,`status`,remark,birthday,height,create_time) values(:id,:name,:status,:remark,:birthday,:height,:create_time)">
+	</bean>
+	
+	<task:annotation-driven executor="taskExecutor" scheduler="taskScheduler"/>
+	<task:executor id="taskExecutor" pool-size="5"/>
+	<task:scheduler id="taskScheduler" pool-size="5"/>
+	
+	<!-- 定时器配置 -->
+	<task:scheduled-tasks scheduler="taskScheduler">
+		<task:scheduled ref="datasync1" method="execute" cron="1/10 * * * * ?"/>
+		<!-- <task:scheduled ref="datasync2" method="execute" cron="1/10 * * * * ?"/> -->
+	</task:scheduled-tasks>
+	
+</beans>
