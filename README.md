@@ -12,8 +12,8 @@
 软件架构说明
 
 #### 软件运行要求
-1.springboot 2.x
-2.jdk 1.8
+1. springboot 2.x
+2. jdk 1.8
 
 #### 安装教程
 
