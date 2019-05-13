@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>数据同步</title>
+    <link rel="stylesheet" href="../plugs/layer/theme/default/layer.css">
+    <link rel="stylesheet" href="../plugs/layui/css/layui.css">
+    <link rel="stylesheet" href="../css/datasyncIndex.css">
+    <link rel="stylesheet" href="../css/bootstrap.css">
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <hr>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-1"></div>
+        <div class="col-lg-10">
+            <div class="col-lg-8"></div>
+            <div class="col-lg-3">
+                <input type="text" name="condition" id="condition" class="form-control">
+            </div>
+            <div class="col-lg-1">
+                <a href="javascript:void(0)" class="btn btn-primary" onclick="seachTable()">搜索</a>
+            </div>
+        </div>
+        <div class="col-lg-1"></div>
+
+    </div>
+    <div class="row">
+        <div class="col-lg-12">
+            <hr>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-1"></div>
+        <div class="col-lg-10">
+            <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>表名称</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="dataTbody">
+                    <%for(var i=0;i<tables.~size;i++){
+                        if(i%2==0){%>
+                    <tr>
+                        <td class="tbodyTd">${i+1}</td>
+                        <td>${tables[i]}</td>
+                        <td class="tbodyTd">
+                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步数据</button>
+                        </td>
+                    </tr>
+                    <%}else{%>
+                    <tr class="info">
+                        <td class="tbodyTd">${i+1}</td>
+                        <td>${tables[i]}</td>
+                        <td class="tbodyTd">
+                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步数据</button>
+                        </td>
+                    </tr>
+
+                    <%}
+                    }%>
+                    </tbody>
+                </table>
+        </div>
+        <div class="col-lg-1"></div>
+    </div>
+</div>
+
+<script src="../js/jquery-1.11.1.js" charset="utf-8"></script>
+<script src="../plugs/layer/layer.js" charset="utf-8"></script>
+<script src="../plugs/layui/layui.js" charset="utf-8"></script>
+<script src="../js/bootstrap.js"></script>
+
+</body>
+</html>
+<script>
+    function syncData(tableName) {
+        $.ajax({
+            url: '/datasync/doSyncData',
+            data: {tableName: tableName},
+            dataType: 'json',
+            type: 'post',
+            success: function (data) {
+                layer.msg(data.msg);
+            }
+        })
+    }
+    function seachTable() {
+        var condition=$("#condition").val();
+        $.ajax({
+           url:'/datasync/seach',
+           data:{"condition":condition},
+           dataType:'json',
+           type:'post',
+           success:function (data) {
+                if (data.code==0){
+                    $("#dataTbody").empty();
+                    var html='';
+                    var arr=data.data;
+                    var j=1;
+                    for (var i = 0; i < arr.length; i++) {
+                        if (i%2==0){
+                            html+='<tr>'
+                            html+='<td class="tbodyTd">'+j+'</td>'
+                            html+='<td>'+arr[i]+'</td>'
+                            html+='<td class="tbodyTd">'
+                            html+='<button class="btn btn-info" onclick="syncData(\''+arr[i]+'\')">同步数据</button>'
+                            html+='</td>'
+                            html+='</tr>'
+                            j++;
+                        } else{
+                            html+='<tr class="info">'
+                            html+='<td class="tbodyTd">'+j+'</td>'
+                            html+='<td>'+arr[i]+'</td>'
+                            html+='<td class="tbodyTd">'
+                            html+='<button class="btn btn-info" onclick="syncData(\''+arr[i]+'\')">同步数据</button>'
+                            html+='</td>'
+                            html+='</tr>'
+                            j++;
+                        }
+
+                    }
+                    $("#dataTbody").append(html);
+                }
+           }
+        });
+    }
+</script>
