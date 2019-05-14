@@ -1,0 +1,2 @@
+# datasync
+数据库数据同步，支持oracle同步到oracle、oracle同步到mysql、mysql同步到oracle、mysql同步到mysql
