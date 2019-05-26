@@ -25,7 +25,7 @@
 
 1. 按照要求修改application.yml中的DataSource项
 2. 运行软件
-3. 访问地址：http://127.0.0.1:8080/datasync/dataIndex
+3. 访问地址：http://127.0.0.1:8080/datasync/index
 
 
 
