@@ -53,6 +53,17 @@ public class IndexController implements BeanNameAware {
     private String oracleAndMysql = "oracleAndMysql";//primaryDB是oralce，secondaryDB是mysql
     private String mysqlAndOracle = "mysqlAndOracle";//primaryDB是mysql，secondaryDB是oralce
 
+    //成功时0
+    private int SYNC_TABLE_SUCCESS_CODE=0;
+    //备份表时表名过长
+    private int BK_TABLE_TOOLONG_CODE=1;
+    //新建表时报错
+    private int NEW_TABLE_ERROR_CODE=2;
+    //插入数据时报错
+    private int INSERT_TABLE_ERROR_CODE=3;
+
+
+
     private String beanName;//获取当前类名称
 
     @Override
@@ -60,7 +71,7 @@ public class IndexController implements BeanNameAware {
         this.beanName = name;
     }
 
-    @RequestMapping("/dataIndex")
+    @RequestMapping("/index")
     public String index(HttpServletRequest request) {
         System.err.println("成功访问！");
         String sql = null;
@@ -120,7 +131,7 @@ public class IndexController implements BeanNameAware {
 
     @RequestMapping(value = "/doSyncData", method = RequestMethod.POST)
     @ResponseBody
-    public Object doSyncData(@RequestParam("tableName") String tableName) {
+    public Result doSyncData(@RequestParam("tableName") String tableName) {
         try {
             //查询本地数据库中是否存在该表，不存在则直接新建表，存在则备份
             int count = checkTable(tableName);
@@ -128,15 +139,30 @@ public class IndexController implements BeanNameAware {
                 log.info("{}:不存在表：{}", beanName, tableName);
                 //本地数据库不存在该表，直接新建表
                 log.info("{}:开始新建表:{}", beanName, tableName);
-                createTable(tableName);
+                try {
+                    createTable(tableName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return Result.error(NEW_TABLE_ERROR_CODE,"重建表失败");
+                }
             } else {
                 //1、修改目标表名（备份）
                 log.info("{}:存在表:{}", beanName, tableName);
                 log.info("{}:开始备份表:{}", beanName, tableName);
-                backUpTable(tableName);
+                try {
+                    backUpTable(tableName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return Result.error(BK_TABLE_TOOLONG_CODE,"表名过长，备份表失败");
+                }
                 //2、新建表(获取建表DDL语句)
                 log.info("{}:开始重建表:{}", beanName, tableName);
-                createTable(tableName);
+                try {
+                    createTable(tableName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return Result.error(NEW_TABLE_ERROR_CODE,"重建表失败");
+                }
             }
             //3、插入数据
             log.info("{}:开始更新，往表:{}中插入数据", beanName, tableName);
@@ -214,12 +240,25 @@ public class IndexController implements BeanNameAware {
      * @Date: 2019/4/26  15:42
      * @Description:
      */
-    private void backUpTable(String tableName) {
+    private void backUpTable(String tableName) throws Exception {
         //获取当前时间，并修改成yyyy-MM_dd_HH_mm_ss模式
         String defaultDateStr = DateUtil.getDefaultDateTimeStr();
         long currentTime = DateUtil.getCurrentTime();
         //以时间毫秒值为结尾进行表备份
         String newName = tableName + "_BK_" + currentTime;
+        //防止oracle表名超过30位报错
+        if ("oracle".equalsIgnoreCase(primaryDBType)){
+            if (tableName.length()>30){
+                throw new Exception("表名过长，请手动备份！");
+            }
+            String tempName=tableName+"_BK_";
+            String bkTime=currentTime+"";
+            if (newName.length()>30){
+                int bkLength = 30 - tempName.length();
+                String end = bkTime.substring(bkLength);
+                newName=tableName+end;
+            }
+        }
         String renameTableSql = "ALTER TABLE " + tableName + " RENAME TO " + newName;
         jdbcTemplate1.execute(renameTableSql);
         log.info("{}:备份表:{}成功，新表名为:{}", beanName, tableName, newName);
