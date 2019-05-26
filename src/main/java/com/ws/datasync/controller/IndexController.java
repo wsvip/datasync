@@ -349,11 +349,11 @@ public class IndexController implements BeanNameAware {
     private String checkDBType(String primaryDBType, String secondaryDBType) {
         //两个数据库都是oracle
         if ("oracle".equalsIgnoreCase(primaryDBType) && "oracle".equalsIgnoreCase(secondaryDBType)) {
-            return "doubleOracleDB";
+            return "doubleOracle";
         }
         //两个数据库都是mysql
         else if ("mysql".equalsIgnoreCase(primaryDBType) && "mysql".equalsIgnoreCase(secondaryDBType)) {
-            return "doubleMysqlDB";
+            return "doubleMysql";
         }
         //primaryDB是oracle，secondaryDB是mysql
         else if ("oracle".equalsIgnoreCase(primaryDBType) && "mysql".equalsIgnoreCase(secondaryDBType)) {

@@ -82,13 +82,14 @@
 </html>
 <script>
     function syncData(tableName) {
+        var index=layer.load(1,{shade:[0.1,'#cccccc']},'正在同步');
         $.ajax({
             url: '/datasync/doSyncData',
             data: {tableName: tableName},
             dataType: 'json',
             type: 'post',
             success: function (data) {
-                console.log(data);
+                layer.close(index);
                 layer.msg(data.msg);
             }
         })
