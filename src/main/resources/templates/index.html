@@ -52,7 +52,8 @@
                         <td class="tbodyTd">${i+1}</td>
                         <td>${tables[i]}</td>
                         <td class="tbodyTd">
-                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步数据</button>
+                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步整表数据</button>
+                            <button class="btn btn-info" onclick="addtoData('${tables[i]}')">追加数据</button>
                         </td>
                     </tr>
                     <%}else{%>
@@ -60,7 +61,8 @@
                         <td class="tbodyTd">${i+1}</td>
                         <td>${tables[i]}</td>
                         <td class="tbodyTd">
-                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步数据</button>
+                            <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步整表数据</button>
+                            <button class="btn btn-info" onclick="addtoData('${tables[i]}')">追加数据</button>
                         </td>
                     </tr>
 
@@ -81,19 +83,55 @@
 </body>
 </html>
 <script>
+    /**
+     * 同步整表数据
+     * @param tableName
+     */
     function syncData(tableName) {
-        var index=layer.load(1,{shade:[0.1,'#cccccc']},'正在同步');
-        $.ajax({
-            url: '/datasync/doSyncData',
-            data: {tableName: tableName},
-            dataType: 'json',
-            type: 'post',
-            success: function (data) {
-                layer.close(index);
-                layer.msg(data.msg);
-            }
-        })
+        var conFlag=confirm("该操作执行顺序为：\n1、本地有表--->备份表--->新建表，无表--->新建表。\n2、同步数据到新建表;\n确认要执行该操作吗？");
+        if (conFlag){
+            var index=layer.load(1,{shade:[0.1,'#cccccc']},'正在同步');
+            $.ajax({
+                url: '/datasync/doSyncData',
+                data: {tableName: tableName},
+                dataType: 'json',
+                type: 'post',
+                success: function (data) {
+                    layer.close(index);
+                    layer.msg(data.msg);
+                }
+            });
+        }
     }
+
+    /**
+     * 追加数据到现有表
+     * tableName
+     */
+    function addtoData(tableName) {
+        var conFlag=confirm("该操作执行顺序为：\n1、追加数据到本地数据表，存在同一编号ID数据，检测字段是否变化，有变化更新，无变化不插入。\n确认要执行该操作吗？");
+        if (conFlag){
+            var index=layer.load(1,{shade:[0.1,'#cccccc']},'正在同步');
+            $.ajax({
+               url:'/datasync/doAddtoData',
+               data:{tableName:tableName},
+               dataType:'json',
+               type:'post',
+               success:function (data) {
+                   layer.close(index);
+                   if (data.code==0){
+                       layer.msg(data.msg);
+                   } else{
+                       layer.msg(data.msg);
+                   }
+               }
+            });
+        }
+    }
+
+    /**
+     * 检索表
+     */
     function seachTable() {
         var condition=$("#condition").val();
         $.ajax({

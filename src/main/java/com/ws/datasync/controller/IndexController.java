@@ -1,16 +1,14 @@
 package com.ws.datasync.controller;
 
 import com.ws.datasync.bean.Column;
-import com.ws.datasync.common.util.DateUtil;
-import com.ws.datasync.common.util.Mysql2OracleUtil;
-import com.ws.datasync.common.util.Oracle2MysqlUtil;
-import com.ws.datasync.common.util.Result;
+import com.ws.datasync.common.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/datasync")
@@ -54,14 +53,13 @@ public class IndexController implements BeanNameAware {
     private String mysqlAndOracle = "mysqlAndOracle";//primaryDB是mysql，secondaryDB是oralce
 
     //成功时0
-    private int SYNC_TABLE_SUCCESS_CODE=0;
+    private int SYNC_TABLE_SUCCESS_CODE = 0;
     //备份表时表名过长
-    private int BK_TABLE_TOOLONG_CODE=1;
+    private int BK_TABLE_TOOLONG_CODE = 1;
     //新建表时报错
-    private int NEW_TABLE_ERROR_CODE=2;
+    private int NEW_TABLE_ERROR_CODE = 2;
     //插入数据时报错
-    private int INSERT_TABLE_ERROR_CODE=3;
-
+    private int INSERT_TABLE_ERROR_CODE = 3;
 
 
     private String beanName;//获取当前类名称
@@ -128,7 +126,14 @@ public class IndexController implements BeanNameAware {
         }
         return tableList;
     }
-
+/**
+ * 同步整表数据
+ * @Author:  WS-
+ * @param tableName 表名称
+ * @return:
+ * @Date:    2019/7/1  16:30
+ * @Description:
+ */
     @RequestMapping(value = "/doSyncData", method = RequestMethod.POST)
     @ResponseBody
     public Result doSyncData(@RequestParam("tableName") String tableName) {
@@ -143,7 +148,7 @@ public class IndexController implements BeanNameAware {
                     createTable(tableName);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return Result.error(NEW_TABLE_ERROR_CODE,"重建表失败");
+                    return Result.error(NEW_TABLE_ERROR_CODE, "重建表失败");
                 }
             } else {
                 //1、修改目标表名（备份）
@@ -153,7 +158,7 @@ public class IndexController implements BeanNameAware {
                     backUpTable(tableName);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return Result.error(BK_TABLE_TOOLONG_CODE,"表名过长，备份表失败");
+                    return Result.error(BK_TABLE_TOOLONG_CODE, "表名过长，备份表失败");
                 }
                 //2、新建表(获取建表DDL语句)
                 log.info("{}:开始重建表:{}", beanName, tableName);
@@ -161,7 +166,7 @@ public class IndexController implements BeanNameAware {
                     createTable(tableName);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return Result.error(NEW_TABLE_ERROR_CODE,"重建表失败");
+                    return Result.error(NEW_TABLE_ERROR_CODE, "重建表失败");
                 }
             }
             //3、插入数据
@@ -176,6 +181,104 @@ public class IndexController implements BeanNameAware {
             //return ResultUtil.error("同步失败");
             return Result.error("同步失败");
         }
+    }
+
+    /**
+     * 追加数据到现有表中，如果表中数据存在重复的则更新该条数据
+     *
+     * @param tableName
+     * @Author: WS-
+     * @return:
+     * @Date: 2019/6/4  14:19
+     * @Description:
+     */
+    @RequestMapping(value = "/doAddtoData", method = RequestMethod.POST)
+    @ResponseBody
+    public Object doAddtoData(@RequestParam("tableName") String tableName) {
+        //1、检测是否存在表
+        int i = checkTable(tableName);
+        if (i < 0) {
+            return Result.error(1, "本地数据库不存在表：" + tableName);
+        } else {
+            //2、获取两个数据的同张表中所有数据
+            String sql = "select * from " + tableName;
+            List<Map<String, Object>> mapList1 = jdbcTemplate1.queryForList(sql);
+            List<Map<String, Object>> mapList2 = jdbcTemplate2.queryForList(sql);
+            String secondId = null;
+            //记录更新的条数
+            int updateCount=0;
+            int insertCount=0;
+            //获取目标表id值
+            for (Map<String, Object> map : mapList2) {
+                for (String key : map.keySet()) {
+                    if (key.equalsIgnoreCase("id")) {
+                        //查询id
+                        secondId = (String) map.get(key);
+                        //根据id查询该条记录是否已经存在
+                        String queryByIdSql = "select * from " + tableName + " where id ='" + secondId + "'";
+                        Map<String, Object> map1 = null;
+                        List<Map<String, Object>> fildCountList = CommonUtil.getFildCountList(tableName, primaryDBType, secondaryDBType, jdbcTemplate2);
+                        try {
+                            map1 = jdbcTemplate1.queryForMap(queryByIdSql);
+                            if (map1.size() > 0) {
+                                //如果存在则更新
+                                //获取字段数量
+                                String updateSetStr = "";
+                                for (Map<String, Object> countMap : fildCountList) {
+                                    for (String columnKey : countMap.keySet()) {
+                                        System.err.println(countMap.get(columnKey));
+                                        String column = countMap.get(columnKey).toString();
+                                        if (!column.equalsIgnoreCase("id")) {
+                                            updateSetStr +=column + "= '" + map.get(column) + "',";
+                                        }
+                                    }
+                                }
+                                updateSetStr = updateSetStr.substring(0, updateSetStr.lastIndexOf(","));
+                                String updateByIdSql = "update " + tableName + " set " + updateSetStr + " where id='" + secondId+"'";
+                                int count = jdbcTemplate1.update(updateByIdSql);
+                                updateCount+=count;
+                                log.info("更新了{}条数据",updateCount);
+                            }else{
+                                //不存在则添加
+                                String getDataById="SELECT * FROM "+tableName +" WHERE ID ='"+secondId+"'";
+                                List<Map<String, Object>> list = jdbcTemplate2.queryForList(getDataById);
+                                int size = fildCountList.size();
+                                String temp = "";
+                                for (int j = 0; j < size; j++) {
+                                    temp += "?,";
+                                }
+                                temp = temp.substring(0, temp.lastIndexOf(","));
+                                String insertSql = "INSERT INTO " + tableName + " VALUES(" + temp + ")";
+                                int count = 0;
+                                for (Map<String, Object> tempmap : list) {
+                                    ArrayList<Object> tempList = new ArrayList<>();
+                                    for (Object value : tempmap.values()) {
+                                        tempList.add(value);
+                                    }
+                                    Object[] obj = tempList.toArray();
+                                    count++;
+                                    int update = jdbcTemplate1.update(insertSql, obj);
+                                    insertCount+=update;
+                                    log.info("插入了{}条数据",insertCount);
+                                }
+                            }
+                        } catch (DataAccessException e) {
+                            List<Map<String, Object>> mapList = jdbcTemplate1.queryForList(queryByIdSql);
+
+                        }
+                    } else {
+                        //寻找主键
+
+                    }
+                }
+
+            }
+
+            System.err.println(mapList1);
+            System.err.println(mapList2);
+        }
+
+        return Result.success("同步成功");
     }
 
     /**
@@ -198,25 +301,25 @@ public class IndexController implements BeanNameAware {
         }
         List<Map<String, Object>> maps = jdbcTemplate2.queryForList(getDDLSql);
         String ddl = null;
-        String createTableSql=null;
+        String createTableSql = null;
         String DBType = checkDBType(primaryDBType, secondaryDBType);
 
         //两个数据库都是oracle
         if (DBType.equalsIgnoreCase(doubleOracle)) {
             ddl = maps.get(0).get("DDL").toString();
             //将源数据库中数据名改为本地数据库名
-            createTableSql= ddl.replaceAll(secondaryName, primaryName);
+            createTableSql = ddl.replaceAll(secondaryName, primaryName);
         }
         //两个数据库都是mysql
         else if (DBType.equalsIgnoreCase(doubleMysql)) {
             ddl = maps.get(0).get("Create Table").toString();
             //将源数据库中数据名改为本地数据库名
-            createTableSql= ddl.replaceAll(secondaryName, primaryName);
+            createTableSql = ddl.replaceAll(secondaryName, primaryName);
         }
         //本地数据库是oracle，源数据库是mysql
         else if (DBType.equalsIgnoreCase(oracleAndMysql)) {
             ArrayList<Column> mysqlColumn = Mysql2OracleUtil.getMysqlColumn(tableName, jdbcTemplate2);
-            createTableSql=Mysql2OracleUtil.mysqlDDL2OracleDDL(tableName,mysqlColumn).toString();
+            createTableSql = Mysql2OracleUtil.mysqlDDL2OracleDDL(tableName, mysqlColumn).toString();
         }
         //本地数据库是mysql，源数据库是oracle
         else if (DBType.equalsIgnoreCase(mysqlAndOracle)) {
@@ -224,8 +327,8 @@ public class IndexController implements BeanNameAware {
             List<Column> oracleColumn = Oracle2MysqlUtil.getOracleColumn(tableName, jdbcTemplate2);
             //将oracle建表语句改成mysql建表语句
             createTableSql = Oracle2MysqlUtil.oracleDDL2Mysql(tableName, oracleColumn).toString();
-        }else{
-            log.info("{}:数据库类型无法判断！",beanName);
+        } else {
+            log.info("{}:数据库类型无法判断！", beanName);
         }
 
         jdbcTemplate1.execute(createTableSql);
@@ -247,16 +350,16 @@ public class IndexController implements BeanNameAware {
         //以时间毫秒值为结尾进行表备份
         String newName = tableName + "_BK_" + currentTime;
         //防止oracle表名超过30位报错
-        if ("oracle".equalsIgnoreCase(primaryDBType)){
-            if (tableName.length()>30){
+        if ("oracle".equalsIgnoreCase(primaryDBType)) {
+            if (tableName.length() > 30) {
                 throw new Exception("表名过长，请手动备份！");
             }
-            String tempName=tableName+"_BK_";
-            String bkTime=currentTime+"";
-            if (newName.length()>30){
+            String tempName = tableName + "_BK_";
+            String bkTime = currentTime + "";
+            if (newName.length() > 30) {
                 int bkLength = 30 - tempName.length();
                 String end = bkTime.substring(bkLength);
-                newName=tableName+end;
+                newName = tableName + end;
             }
         }
         String renameTableSql = "ALTER TABLE " + tableName + " RENAME TO " + newName;
@@ -274,20 +377,11 @@ public class IndexController implements BeanNameAware {
      */
     private int insertDataToTable(String tableName) {
         String getDataListSql = "SELECT * FROM " + tableName;
-        if ("mysql".equalsIgnoreCase(secondaryDBType)){
-            getDataListSql=getDataListSql.toLowerCase();
+        if ("mysql".equalsIgnoreCase(secondaryDBType)) {
+            getDataListSql = getDataListSql.toLowerCase();
         }
         List<Map<String, Object>> list = jdbcTemplate2.queryForList(getDataListSql);
-        //查询表字段数量
-        String fildCountSql = null;
-        if ("oracle".equalsIgnoreCase(secondaryDBType)) {
-            fildCountSql = "SELECT A.COLUMN_NAME FROM USER_TAB_COLUMNS A WHERE TABLE_NAME ='" + tableName.toUpperCase() + "'";
-        } else if ("mysql".equalsIgnoreCase(secondaryDBType)) {
-            fildCountSql = "select COLUMN_NAME from information_schema.columns where table_name ='" + tableName + "'";
-        } else {
-
-        }
-        List<Map<String, Object>> fildCountList = jdbcTemplate2.queryForList(fildCountSql);
+        List<Map<String, Object>> fildCountList = CommonUtil.getFildCountList(tableName, primaryDBType, secondaryDBType, jdbcTemplate2);
         int size = fildCountList.size();
         String temp = "";
         for (int i = 0; i < size; i++) {
