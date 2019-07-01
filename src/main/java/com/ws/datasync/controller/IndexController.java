@@ -126,14 +126,16 @@ public class IndexController implements BeanNameAware {
         }
         return tableList;
     }
-/**
- * 同步整表数据
- * @Author:  WS-
- * @param tableName 表名称
- * @return:
- * @Date:    2019/7/1  16:30
- * @Description:
- */
+
+    /**
+     * 同步整表数据
+     *
+     * @param tableName 表名称
+     * @Author: WS-
+     * @return:
+     * @Date: 2019/7/1  16:30
+     * @Description:
+     */
     @RequestMapping(value = "/doSyncData", method = RequestMethod.POST)
     @ResponseBody
     public Result doSyncData(@RequestParam("tableName") String tableName) {
@@ -206,8 +208,8 @@ public class IndexController implements BeanNameAware {
             List<Map<String, Object>> mapList2 = jdbcTemplate2.queryForList(sql);
             String secondId = null;
             //记录更新的条数
-            int updateCount=0;
-            int insertCount=0;
+            int updateCount = 0;
+            int insertCount = 0;
             //获取目标表id值
             for (Map<String, Object> map : mapList2) {
                 for (String key : map.keySet()) {
@@ -223,61 +225,36 @@ public class IndexController implements BeanNameAware {
                             if (map1.size() > 0) {
                                 //如果存在则更新
                                 //获取字段数量
-                                String updateSetStr = "";
-                                for (Map<String, Object> countMap : fildCountList) {
-                                    for (String columnKey : countMap.keySet()) {
-                                        System.err.println(countMap.get(columnKey));
-                                        String column = countMap.get(columnKey).toString();
-                                        if (!column.equalsIgnoreCase("id")) {
-                                            updateSetStr +=column + "= '" + map.get(column) + "',";
-                                        }
-                                    }
-                                }
-                                updateSetStr = updateSetStr.substring(0, updateSetStr.lastIndexOf(","));
-                                String updateByIdSql = "update " + tableName + " set " + updateSetStr + " where id='" + secondId+"'";
-                                int count = jdbcTemplate1.update(updateByIdSql);
-                                updateCount+=count;
-                                log.info("更新了{}条数据",updateCount);
-                            }else{
+                                int count = updateInAddtoData(fildCountList, tableName, secondId, map);
+                                updateCount += count;
+                                log.info("更新了{}条数据", updateCount);
+                            } else {
                                 //不存在则添加
-                                String getDataById="SELECT * FROM "+tableName +" WHERE ID ='"+secondId+"'";
-                                List<Map<String, Object>> list = jdbcTemplate2.queryForList(getDataById);
-                                int size = fildCountList.size();
-                                String temp = "";
-                                for (int j = 0; j < size; j++) {
-                                    temp += "?,";
-                                }
-                                temp = temp.substring(0, temp.lastIndexOf(","));
-                                String insertSql = "INSERT INTO " + tableName + " VALUES(" + temp + ")";
-                                int count = 0;
-                                for (Map<String, Object> tempmap : list) {
-                                    ArrayList<Object> tempList = new ArrayList<>();
-                                    for (Object value : tempmap.values()) {
-                                        tempList.add(value);
-                                    }
-                                    Object[] obj = tempList.toArray();
-                                    count++;
-                                    int update = jdbcTemplate1.update(insertSql, obj);
-                                    insertCount+=update;
-                                    log.info("插入了{}条数据",insertCount);
-                                }
+                                int count = insertInAddToData(fildCountList, tableName, secondId);
+                                insertCount += count;
+                                log.info("插入了{}条数据", insertCount);
                             }
                         } catch (DataAccessException e) {
                             List<Map<String, Object>> mapList = jdbcTemplate1.queryForList(queryByIdSql);
-
+                            if (mapList.size() > 0) {
+                                //存在
+                                int count = updateInAddtoData(fildCountList, tableName, secondId, map);
+                                updateCount += count;
+                                log.info("更新了{}条数据", updateCount);
+                            } else {
+                                //不存在
+                                int count = insertInAddToData(fildCountList, tableName, secondId);
+                                insertCount += count;
+                                log.info("插入了{}条数据", insertCount);
+                            }
                         }
                     } else {
                         //寻找主键
 
                     }
                 }
-
             }
-
-            System.err.println(mapList1);
-            System.err.println(mapList2);
         }
-
         return Result.success("同步成功");
     }
 
@@ -459,5 +436,57 @@ public class IndexController implements BeanNameAware {
         } else {
             return "error";
         }
+    }
+
+/**
+ * @Author:  WS-
+  * @param null
+ * @return:
+ * @Date:    2019/7/1  17:14
+ * @Description: 追加数据时用来更新单条数据使用
+ */
+    private int updateInAddtoData(List<Map<String, Object>> fildCountList, String tableName, String secondId, Map<String, Object> map) {
+        String updateSetStr = "";
+        for (Map<String, Object> countMap : fildCountList) {
+            for (String columnKey : countMap.keySet()) {
+                String column = countMap.get(columnKey).toString();
+                if (!column.equalsIgnoreCase("id")) {
+                    updateSetStr += column + "= '" + map.get(column) + "',";
+                }
+            }
+        }
+        updateSetStr = updateSetStr.substring(0, updateSetStr.lastIndexOf(","));
+        String updateByIdSql = "update " + tableName + " set " + updateSetStr + " where id='" + secondId + "'";
+        int count = jdbcTemplate1.update(updateByIdSql);
+        return count;
+    }
+    /**
+     * @Author:  WS-
+      * @param null
+     * @return:
+     * @Date:    2019/7/1  17:15
+     * @Description: 追加数据时用来新增数据使用
+     */
+    private int insertInAddToData(List<Map<String, Object>> fildCountList, String tableName, String secondId) {
+        String getDataById = "SELECT * FROM " + tableName + " WHERE ID ='" + secondId + "'";
+        List<Map<String, Object>> list = jdbcTemplate2.queryForList(getDataById);
+        int size = fildCountList.size();
+        String temp = "";
+        for (int j = 0; j < size; j++) {
+            temp += "?,";
+        }
+        temp = temp.substring(0, temp.lastIndexOf(","));
+        String insertSql = "INSERT INTO " + tableName + " VALUES(" + temp + ")";
+        int count = 0;
+        for (Map<String, Object> tempmap : list) {
+            ArrayList<Object> tempList = new ArrayList<>();
+            for (Object value : tempmap.values()) {
+                tempList.add(value);
+            }
+            Object[] obj = tempList.toArray();
+            int update = jdbcTemplate1.update(insertSql, obj);
+            count += update;
+        }
+        return count;
     }
 }
