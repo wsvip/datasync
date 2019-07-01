@@ -2,9 +2,10 @@
 
 #### 介绍
 数据库数据同步，支持oracle同步到oracle、oracle同步到mysql、mysql同步到oracle、mysql同步到mysql。
-支持界面化操作
-![输入图片说明](https://images.gitee.com/uploads/images/2019/0513/231249_e0c92f01_1650886.png "微信图片_20190513231226.png")
-
+1、支持整表备份-同步，数据追加同步。
+2、支持界面化操作
+![输入图片说明](https://images.gitee.com/uploads/images/2019/0701/164854_edcbefb2_1650886.png "Snipaste_2019-07-01_16-47-46.png")
+![输入图片说明](https://images.gitee.com/uploads/images/2019/0701/164908_96ed22f3_1650886.png "Snipaste_2019-07-01_16-48-32.png")
 1. 本地数据库为需要同步到的数据库
 2. 源数据库为数据来源数据库
 
