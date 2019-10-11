@@ -33,7 +33,7 @@
 		<level value="INFO" />
 		<appender-ref ref="stdout" />
 	</root>
-	<logger name="com.zle.datasync">
+	<logger name="com.ws.datasync">
 		<level value="DEBUG" />
 		<appender-ref ref="logfile" />
 	</logger>

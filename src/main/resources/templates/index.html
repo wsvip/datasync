@@ -54,6 +54,7 @@
                         <td class="tbodyTd">
                             <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步整表数据</button>
                             <button class="btn btn-info" onclick="addtoData('${tables[i]}')">追加数据</button>
+                            <button class="btn btn-info" onclick="customData ('${tables[i]}')">自定义更新字段</button>
                         </td>
                     </tr>
                     <%}else{%>
@@ -63,6 +64,7 @@
                         <td class="tbodyTd">
                             <button class="btn btn-info" onclick="syncData('${tables[i]}')">同步整表数据</button>
                             <button class="btn btn-info" onclick="addtoData('${tables[i]}')">追加数据</button>
+                            <button class="btn btn-info" onclick="customData('${tables[i]}')">自定义更新字段</button>
                         </td>
                     </tr>
 
@@ -128,6 +130,17 @@
             });
         }
     }
+    /**
+     * 自定义更新表
+     **/
+    function customData(tableName) {
+        /*
+        获取表字段
+         */
+        /*
+
+         */
+    }
 
     /**
      * 检索表
@@ -152,6 +165,8 @@
                             html+='<td>'+arr[i]+'</td>'
                             html+='<td class="tbodyTd">'
                             html+='<button class="btn btn-info" onclick="syncData(\''+arr[i]+'\')">同步数据</button>'
+                            html+='<button class="btn btn-info" onclick="addtoData(\''+arr[i]+'\')">追加数据</button>'
+                            html+='<button class="btn btn-info" onclick="customData(\''+arr[i]+'\')">自定义更新字段</button>'
                             html+='</td>'
                             html+='</tr>'
                             j++;
@@ -161,6 +176,8 @@
                             html+='<td>'+arr[i]+'</td>'
                             html+='<td class="tbodyTd">'
                             html+='<button class="btn btn-info" onclick="syncData(\''+arr[i]+'\')">同步数据</button>'
+                            html+='<button class="btn btn-info" onclick="addtoData(\''+arr[i]+'\')">追加数据</button>'
+                            html+='<button class="btn btn-info" onclick="customData(\''+arr[i]+'\')">自定义更新字段</button>'
                             html+='</td>'
                             html+='</tr>'
                             j++;

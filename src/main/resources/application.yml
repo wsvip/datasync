@@ -18,7 +18,7 @@ spring:
       password: 123456
       type: oracle #数据库类型，
 
-    #secondary:  # 高正数据库
+    #secondary:  # 源数据库
     #  name: target #数据库名称，mysql使用小写
     #  jdbc-url: jdbc:mysql://192.168.3.12:3306/target?useUnicode=true&amp;characterEncoding=UTF8
     #  username: root

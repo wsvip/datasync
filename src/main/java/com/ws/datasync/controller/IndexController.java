@@ -227,12 +227,12 @@ public class IndexController implements BeanNameAware {
                                 //获取字段数量
                                 int count = updateInAddtoData(fildCountList, tableName, secondId, map);
                                 updateCount += count;
-                                log.info("更新了{}条数据", updateCount);
+                                log.info("{}：更新了{}条数据",beanName, updateCount);
                             } else {
                                 //不存在则添加
                                 int count = insertInAddToData(fildCountList, tableName, secondId);
                                 insertCount += count;
-                                log.info("插入了{}条数据", insertCount);
+                                log.info("{}：插入了{}条数据",beanName, insertCount);
                             }
                         } catch (DataAccessException e) {
                             List<Map<String, Object>> mapList = jdbcTemplate1.queryForList(queryByIdSql);
@@ -438,13 +438,17 @@ public class IndexController implements BeanNameAware {
         }
     }
 
-/**
- * @Author:  WS-
-  * @param null
- * @return:
- * @Date:    2019/7/1  17:14
- * @Description: 追加数据时用来更新单条数据使用
- */
+    /**
+     *
+     * @Author:  WS-
+     * @param fildCountList
+     * @param tableName
+     * @param secondId
+     * @param map
+     * @return:  int
+     * @Date:    2019/7/5  11:19
+     * @Description:
+     */
     private int updateInAddtoData(List<Map<String, Object>> fildCountList, String tableName, String secondId, Map<String, Object> map) {
         String updateSetStr = "";
         for (Map<String, Object> countMap : fildCountList) {
