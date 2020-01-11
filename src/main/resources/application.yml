@@ -11,30 +11,29 @@ spring:
 
 
   datasource: #database
-    primary:  # 本地数据库
-      name: WS #数据库名称，oracle必须使用大写
-      jdbc-url: jdbc:oracle:thin:@192.168.3.10:1521:orcl
-      username: ws
-      password: 123456
-      type: oracle #数据库类型，
-
-    #secondary:  # 源数据库
-    #  name: target #数据库名称，mysql使用小写
-    #  jdbc-url: jdbc:mysql://192.168.3.12:3306/target?useUnicode=true&amp;characterEncoding=UTF8
-    #  username: root
+    #primary:  # 本地数据库
+    #  name: WS #数据库名称，oracle必须使用大写
+    #  jdbc-url: jdbc:oracle:thin:@192.168.3.10:1521:orcl
+    #  username: ws
     #  password: 123456
-    #  type: mysql #数据库类型
+    #  type: oracle #数据库类型，
 
-      #primary:  # 本地数据库
-      #  name: target
-      #  jdbc-url: jdbc:mysql://192.168.3.12:3306/target?useUnicode=true&amp;characterEncoding=UTF8
-      #  username: root
-      #  password: 123456
-      #  type: mysql
-
-    secondary:  # 本地数据库
-      name: WS
-      jdbc-url: jdbc:oracle:thin:@192.168.3.11:1521:orcl
-      username: ws
+    secondary:  # 源数据库
+      name: target #数据库名称，mysql使用小写
+      jdbc-url: jdbc:mysql://192.168.3.20:3306/target?useUnicode=true&amp;characterEncoding=UTF8
+      username: root
       password: 123456
-      type: oracle
+      type: mysql #数据库类型
+    primary:  # 本地数据库
+      name: target
+      jdbc-url: jdbc:mysql://192.168.3.20:3306/target?useUnicode=true&amp;characterEncoding=UTF8
+      username: root
+      password: 123456
+      type: mysql
+
+   # secondary:  # 本地数据库
+   #   name: WS
+   #   jdbc-url: jdbc:oracle:thin:@192.168.3.11:1521:orcl
+   #   username: ws
+   #   password: 123456
+   #   type: oracle
